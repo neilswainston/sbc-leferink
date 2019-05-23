@@ -28,9 +28,9 @@ def analyse_comp_profiles(df):
     distances = pdist(df.values, metric=metric)
     dist_matrix = squareform(distances)
 
-    # Update DataFrame with Euclidean distance between native and all compound
+    # Update DataFrame with Euclidean distance between VAR3 and all compound
     # profiles:
-    df[metric] = dist_matrix[0]
+    df[metric] = dist_matrix[1]  # 1 is index of VAR3 in data
 
     return df.sort_values(metric)
 
