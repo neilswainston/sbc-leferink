@@ -48,6 +48,25 @@ def analyse_plasticity(df):
     df = df.drop(('Residue', '', ''), axis=1)
 
     # Remove silent mutations:
+    # df = _remove_silent_mutations(df)
+
+    # Calculate plasticity, as overlap between distribution and
+    # uniform distribution:
+    uniform = [1 / len(df)] * len(df)
+
+    name = 'plasticity'
+    return df.apply(lambda col: _get_intersection(col, uniform)
+                    ).to_frame(name=name)
+
+
+def _get_intersection(dist1, dist2):
+    '''Get intersection between distributions.'''
+    minima = np.minimum(dist1, dist2)
+    return np.true_divide(np.sum(minima), np.sum(dist2))
+
+
+def _remove_silent_mutations(df):
+    '''Remove silent mitations.'''
     var3 = df.columns.get_level_values('VAR3')
 
     sim_df = pd.DataFrame(
@@ -85,7 +104,7 @@ def main(args):
                              index_col=[0, 1])
 
     aa_out_df = analyse_plasticity(aa_in_df)
-    aa_out_df.to_csv(os.path.join(out_dir, 'Amino acid occurence.csv'))
+    aa_out_df.to_csv(os.path.join(out_dir, 'plasticity.csv'))
 
 
 if __name__ == '__main__':
