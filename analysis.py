@@ -40,14 +40,20 @@ def analyse_plasticity(df):
     # Scale values between 0 and 1:
     df = df / df.sum()
 
+    # Consolidate all residue frequencies, ignoring codons:
+    df.index = df.index.droplevel(level=0)
+    df = df.groupby(level=0).sum().reset_index()
+    df.index = df[('Residue', '', '')]
+    df.index.name = 'Residue'
+    df = df.drop(('Residue', '', ''), axis=1)
+
     # Remove silent mutations:
-    res = df.index.get_level_values('Residue')
     var3 = df.columns.get_level_values('VAR3')
 
     sim_df = pd.DataFrame(
         np.array(
-            [val[0] != val[1] for val in itertools.product(res, var3)]
-        ).reshape(len(res), len(var3)))
+            [val[0] != val[1] for val in itertools.product(df.index, var3)]
+        ).reshape(len(df.index), len(var3)))
 
     return pd.DataFrame(df.values * sim_df.values,
                         columns=df.columns, index=df.index)
