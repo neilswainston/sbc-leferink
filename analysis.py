@@ -8,15 +8,17 @@ To view a copy of this license, visit <http://opensource.org/licenses/MIT/>.
 @author:  neilswainston
 '''
 # pylint: disable=invalid-name
+import itertools
 import os.path
 import sys
 
 from scipy.spatial.distance import pdist, squareform
 
+import numpy as np
 import pandas as pd
 
 
-def analyse_profiles(df):
+def analyse_comp_profiles(df):
     '''Analyse compound profiles.'''
     # Scale values to between 0 and 1:
     df = df / 100.00
@@ -31,6 +33,24 @@ def analyse_profiles(df):
     df[metric] = dist_matrix[0]
 
     return df.sort_values(metric)
+
+
+def analyse_plasticity(df):
+    '''Analyse positional plasticity.'''
+    # Scale values between 0 and 1:
+    df = df / df.sum()
+
+    # Remove silent mutations:
+    res = df.index.get_level_values('Residue')
+    var3 = df.columns.get_level_values('VAR3')
+
+    sim_df = pd.DataFrame(
+        np.array(
+            [val[0] != val[1] for val in itertools.product(res, var3)]
+        ).reshape(len(res), len(var3)))
+
+    return pd.DataFrame(df.values * sim_df.values,
+                        columns=df.columns, index=df.index)
 
 
 def main(args):
@@ -48,8 +68,18 @@ def main(args):
                                sheet_name='Relative_incl ger',
                                index_col='Variant')
 
-    prof_out_df = analyse_profiles(prof_in_df)
+    prof_out_df = analyse_comp_profiles(prof_in_df)
     prof_out_df.to_csv(os.path.join(out_dir, 'Variant product profiles.csv'))
+
+    # Analyse position plasticity:
+    aa_in_df = pd.read_excel(os.path.join(data_dir,
+                                          'Amino acid occurence.xlsx'),
+                             sheet_name='Sheet1',
+                             header=[0, 1, 2],
+                             index_col=[0, 1])
+
+    aa_out_df = analyse_plasticity(aa_in_df)
+    aa_out_df.to_csv(os.path.join(out_dir, 'Amino acid occurence.csv'))
 
 
 if __name__ == '__main__':
